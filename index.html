@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Send files between devices by flashing QR codes. No network, no upload, no server." />
+    <meta name="theme-color" content="#0e1116" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <title>Beamlet</title>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="#" aria-label="Beamlet home">
+        <img src="./favicon.svg" alt="" width="28" height="28" />
+        <span>Beamlet</span>
+      </a>
+      <nav class="tabs" aria-label="Mode">
+        <a href="#send" data-tab="send">Send</a>
+        <a href="#receive" data-tab="receive">Receive</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Home -->
+      <section id="view-home" class="view">
+        <h1>Beam a file across the room.</h1>
+        <p class="lede">
+          One screen flashes a stream of QR codes, another device's camera reads them. No Wi-Fi, no pairing,
+          no upload. Your file never leaves the two devices.
+        </p>
+        <div class="choices">
+          <a class="choice" href="#send">
+            <strong>Send</strong>
+            <span>Pick a file and show it as a QR stream</span>
+          </a>
+          <a class="choice" href="#receive">
+            <strong>Receive</strong>
+            <span>Point this camera at the sending screen</span>
+          </a>
+        </div>
+        <ol class="how">
+          <li>Open Beamlet on both devices. The receiver can scan the code on the Send page to get here.</li>
+          <li>On the sender, choose a file and press <em>Start beaming</em>.</li>
+          <li>On the receiver, press <em>Start camera</em> and frame the code. You can join at any point; missed frames don't matter.</li>
+        </ol>
+      </section>
+
+      <!-- Send -->
+      <section id="view-send" class="view" hidden>
+        <div id="send-setup">
+          <h1>Send</h1>
+          <label class="drop" id="drop">
+            <input type="file" id="file-input" />
+            <span class="drop-main" id="drop-label">Choose a file or drop it here</span>
+            <span class="drop-sub">Small files work best: a few MB at most</span>
+          </label>
+          <details class="text-alt">
+            <summary>Or send some text</summary>
+            <label for="text-input" class="sr-only">Text to send</label>
+            <textarea id="text-input" rows="4" placeholder="Paste a link, a note, anything…"></textarea>
+            <button type="button" class="btn ghost" id="use-text">Use this text</button>
+          </details>
+
+          <div class="settings">
+            <label>
+              Speed
+              <select id="fps">
+                <option value="6">Gentle · 6 fps</option>
+                <option value="10" selected>Normal · 10 fps</option>
+                <option value="15">Fast · 15 fps</option>
+                <option value="24">Very fast · 24 fps</option>
+                <option value="30">Max · 30 fps</option>
+              </select>
+            </label>
+            <label>
+              Density
+              <select id="density">
+                <option value="250">Low · easy to scan</option>
+                <option value="500" selected>Medium</option>
+                <option value="900">High</option>
+                <option value="1400">Max · needs a sharp camera</option>
+              </select>
+            </label>
+          </div>
+          <p class="hint">Codes not getting picked up? Lower the density first, then the speed.</p>
+          <button type="button" class="btn primary" id="start-send" disabled>Start beaming</button>
+
+          <div class="invite">
+            <canvas id="invite-qr" width="160" height="160" aria-label="QR code linking to this app"></canvas>
+            <p>Receiver doesn't have Beamlet open yet? Scan this with its regular camera app.</p>
+          </div>
+        </div>
+
+        <div id="send-live" hidden>
+          <div class="stage">
+            <canvas id="send-qr" aria-label="Animated QR code stream"></canvas>
+          </div>
+          <div class="live-bar">
+            <div>
+              <strong id="send-name">file</strong>
+              <span id="send-stats" aria-live="polite"></span>
+            </div>
+            <div class="live-actions">
+              <button type="button" class="btn ghost" id="fullscreen">Full screen</button>
+              <button type="button" class="btn" id="stop-send">Stop</button>
+            </div>
+          </div>
+          <p class="hint center">Keep beaming until the receiver says it's done. Turn your screen brightness up.</p>
+        </div>
+      </section>
+
+      <!-- Receive -->
+      <section id="view-receive" class="view" hidden>
+        <h1>Receive</h1>
+        <div id="recv-idle">
+          <p class="lede small">Your camera is only used locally to read codes. Nothing is recorded or uploaded.</p>
+          <button type="button" class="btn primary" id="start-recv">Start camera</button>
+          <p class="error" id="recv-error" role="alert" hidden></p>
+        </div>
+
+        <div id="recv-live" hidden>
+          <div class="viewfinder">
+            <video id="video" playsinline muted></video>
+            <div class="reticle" aria-hidden="true"></div>
+          </div>
+          <div class="progress" role="progressbar" aria-label="Transfer progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="recv-progress">
+            <div class="progress-fill" id="recv-fill"></div>
+          </div>
+          <p class="status" id="recv-status" aria-live="polite">Looking for a Beamlet stream…</p>
+          <p class="stats" id="recv-stats"></p>
+          <button type="button" class="btn ghost" id="stop-recv">Stop camera</button>
+        </div>
+
+        <div id="recv-done" hidden>
+          <div class="result">
+            <div class="result-check" aria-hidden="true">✓</div>
+            <h2 id="done-name">file</h2>
+            <p id="done-info"></p>
+            <img id="done-preview" alt="Preview of the received image" hidden />
+            <pre id="done-text" hidden></pre>
+            <div class="result-actions">
+              <a class="btn primary" id="done-download" download>Save file</a>
+              <button type="button" class="btn" id="done-share" hidden>Share…</button>
+              <button type="button" class="btn" id="done-copy" hidden>Copy text</button>
+              <button type="button" class="btn ghost" id="recv-again">Receive another</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>Everything runs in your browser. Open source, MIT licensed.</span>
+    </footer>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
